@@ -19,8 +19,12 @@ Warning='\033[1;33m'
 NoColor='\033[0m'
 
 restore_sensor_polling_once() {
-  if [ "$sensor_polling_restored" -eq 0 ]; then
-   echo "set_sensor_polling set all 1" > /dev/ttyUSB6
+   if [ "$sensor_polling_restored" -eq 0 ]; then
+    set_sensor_polling 1
+    if [ $? -ne 0 ]; then
+      log_message "${Error}Start BIC sensor polling failed.${NoColor}"
+      return 1
+    fi
     log_message "Start BIC sensor polling...."
     sensor_polling_restored=1
   fi
@@ -29,7 +33,7 @@ restore_sensor_polling_once() {
 cleanup() {
   restore_sensor_polling_once
 }
-trap cleanup EXIT
+trap cleanup EXIT INT TERM
 
 function help()
 {
@@ -262,6 +266,38 @@ function check_power_on()
   return 1
 }
 
+function set_sensor_polling()
+{
+  local value=$1   # 0 -> disable, 1 -> enable
+  local retry=0
+  local ret=""
+  local completion_code=""
+  local field7=""
+  local field8=""
+  local field9=""
+
+  while [ $retry -lt $i2c_retry_time ]; do
+    ret=$(pldmtool raw -m 0x0a -d 0x80 0x3F 0x04 0x15 0xa0 0x00 $value 2>/dev/null | grep 'Rx:')
+    if [[ $? -eq 0 && -n "$ret" ]]; then
+      completion_code=$(echo "$ret" | awk '{print $6}')
+      field7=$(echo "$ret" | awk '{print $7}')
+      field8=$(echo "$ret" | awk '{print $8}')
+      field9=$(echo "$ret" | awk '{print $9}')
+
+      if [[ $completion_code == "00" && $field7 == "15" && $field8 == "a0" && $field9 == "00" ]]; then
+        log_message "set_sensor_polling($value) success"
+        return 0
+      fi
+    fi
+
+    retry=$((retry+1))
+    sleep 1
+  done
+
+  log_message "${Warning}Failed to set_sensor_polling($value) after $i2c_retry_time attempts${NoColor}"
+  return 1
+}
+
 main() {
 
   if [ $# -ne 1 ];then
@@ -271,7 +307,12 @@ main() {
   # Script start 
 
   log_message "${Info}=============== F0M Switch Board i2c stress start ===============${NoColor}"
-  echo "set_sensor_polling set all 0" > /dev/ttyUSB6
+  set_sensor_polling 0
+   if [ $? -ne 0 ]; then
+    log_message "${Error}Stop BIC sensor polling failed.${NoColor}"
+    return 1
+  fi
+
   sleep 3s
   log_message "Stop BIC sensor polling...."
 
