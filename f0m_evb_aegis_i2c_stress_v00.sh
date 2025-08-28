@@ -148,7 +148,7 @@ function get_vr_vendor_type()
     exit 1
   fi
 
-  case $board_type in
+  case $vr_verndor_type in
     "00"|"02"|"04")
       log_message "The VR type is MPS, vr_verndor_type: ${vr_verndor_type}"
       ;;
@@ -156,7 +156,7 @@ function get_vr_vendor_type()
       log_message "The VR type is RNS, vr_verndor_type: ${vr_verndor_type}"
       ;;
     *)
-      log_message "${Error}Unable to determine VR type, received vr_verndor_type: ${board_type}.${NoColor}"
+      log_message "${Error}Unable to determine VR type, received vr_verndor_type: ${vr_verndor_type}.${NoColor}"
       exit 1
       ;;
   esac
@@ -164,14 +164,14 @@ function get_vr_vendor_type()
 
 function get_tmp_type()
 {
-  ret=$(pldmtool raw -m 0x0a -d 0x80 0x3f 0x01 0x15 0xa0 0x00 0x18 0x52 0x01 0x38 0x01 0xFE | grep 'Rx:')
+  ret=$(pldmtool raw -m 0x0a -d 0x80 0x3f 0x01 0x15 0xa0 0x00 0x18 0x52 0x01 0x98 0x01 0xFE | grep 'Rx:')
   if [[ $? -ne 0 ]]; then
     log_message "${Error}Failed to execute pldmtool command.${NoColor}"
     exit 1
   fi
   completion_code=$(echo "$ret" | awk '{print $12}')
 
-  if [[ $completion_code == 00 ]]; then
+  if [[ $completion_code != 00 ]]; then
     tmp_type=2; # EMC1413
     log_message "The TMP type is EMC1413"
   else
@@ -187,7 +187,7 @@ fi
 # Script start 
 
 log_message "${Info}=============== F0M Switch Board i2c stress start ===============${NoColor}"
-echo "test sensor set_sensor_polling all 0" > /dev/ttyUSB6
+echo "set_sensor_polling set all 0" > /dev/ttyUSB6
 sleep 3s
 log_message "Stop BIC sensor polling...."
 
@@ -218,61 +218,61 @@ while [[ $current_loop -lt $total_loop_time ]];do
   if [[ $vr_verndor_type == 00 ]] || [[ $vr_verndor_type == 02 ]] || [[ $vr_verndor_type == 04 ]];then
     # Bus 1
     log_message "============= [Bus 1] ==========="
-    wrapper i2c_master_read 1 0x28 0x01 0x00 "SENSOR_NUM_UBC_1_TEMP_C"    
-    wrapper i2c_master_read 1 0x34 0x01 0x00 "SENSOR_NUM_UBC_2_TEMP_C"    
-    wrapper i2c_master_read 1 0x92 0x01 0x00 "SENSOR_NUM_TOP_INLET_TEMP_C"    
-    wrapper i2c_master_read 1 0x94 0x01 0x00 "SENSOR_NUM_TOP_OUTLET_TEMP_C"    
-    wrapper i2c_master_read 1 0x96 0x01 0x00 "SENSOR_NUM_BOT_INLET_TEMP_C"    
-    wrapper i2c_master_read 1 0x9E 0x01 0x00 "SENSOR_NUM_BOT_OUTLET_TEMP_C"    
+    wrapper i2c_master_read 1 0x28 0x01 0x00 "AEGIS_UBC_1_TEMP_C"    
+    wrapper i2c_master_read 1 0x34 0x01 0x00 "AEGIS_UBC_2_TEMP_C"    
+    wrapper i2c_master_read 1 0x92 0x01 0x00 "AEGIS_TOP_INLET_TEMP_C"    
+    wrapper i2c_master_read 1 0x94 0x01 0x00 "AEGIS_TOP_OUTLET_TEMP_C"    
+    wrapper i2c_master_read 1 0x96 0x01 0x00 "AEGIS_BOT_INLET_TEMP_C"    
+    wrapper i2c_master_read 1 0x9E 0x01 0x00 "AEGIS_BOT_OUTLET_TEMP_C"    
     if [[ $tmp_type == 1 ]];then
-      wrapper i2c_master_read 1 0x98 0x01 0x00 "SENSOR_NUM_ON_DIE_1_TEMP_C"      
-      wrapper i2c_master_read 1 0x9A 0x01 0x00 "SENSOR_NUM_ON_DIE_3_TEMP_C"      
+      wrapper i2c_master_read 1 0x98 0x01 0x00 "AEGIS_ON_DIE_1_TEMP_C"      
+      wrapper i2c_master_read 1 0x9A 0x01 0x00 "AEGIS_ON_DIE_3_TEMP_C"      
     else
-      wrapper i2c_master_read 1 0x38 0x01 0x00 "SENSOR_NUM_ON_DIE_1_TEMP_C"      
-      wrapper i2c_master_read 1 0xB8 0x01 0x00 "SENSOR_NUM_ON_DIE_3_TEMP_C"      
+      wrapper i2c_master_read 1 0xB8 0x01 0x00 "AEGIS_ON_DIE_1_TEMP_C"      
+      wrapper i2c_master_read 1 0x38 0x01 0x00 "AEGIS_ON_DIE_3_TEMP_C"      
     fi
     if [[ $board_type == 00 ]];then
-      wrapper i2c_master_read 1 0xF6 0x01 0x00 "SENSOR_NUM_OSFP_P3V3_TEMP_C"      
+      wrapper i2c_master_read 1 0xF6 0x01 0x00 "AEGIS_P3V3_TEMP_C"      
     fi
     if [[ $rev_id -ge 01 ]];then
-      wrapper i2c_master_read 1 0x9E 0x01 0x00 "SENSOR_NUM_EUSB_REPEATER"
-      wrapper i2c_master_read 1 0x12 0x01 0x00 "SENSOR_NUM_321M_CLK_CEN"      
-      wrapper i2c_master_read 1 0xD0 0x01 0x00 "SENSOR_NUM_100M_CLK_CEN"      
-      wrapper i2c_master_read 1 0xCE 0x01 0x00 "SENSOR_NUM_100M_CLK_BUFFER"      
-      wrapper i2c_master_read 1 0xD8 0x01 0x00 "SENSOR_NUM_100M_CLK_BUFFER"      
+      wrapper i2c_master_read 1 0x9E 0x01 0x00 "AEGIS_EUSB_REPEATER"
+      wrapper i2c_master_read 1 0x12 0x01 0x00 "AEGIS_321M_CLK_CEN"      
+      wrapper i2c_master_read 1 0xD0 0x01 0x00 "AEGIS_100M_CLK_CEN"      
+      wrapper i2c_master_read 1 0xCE 0x01 0x00 "AEGIS_100M_CLK_BUFFER"      
+      wrapper i2c_master_read 1 0xD8 0x01 0x00 "AEGIS_100M_CLK_BUFFER"      
     fi
     # Bus 2
     log_message "============= [Bus 2] ==========="
-    wrapper i2c_master_read 2 0x4C 0x01 0x00 "SENSOR_NUM_CPU_P0V85_PVDD_TEMP_C"   
-    wrapper i2c_master_read 2 0xE0 0x01 0x00 "SENSOR_NUM_CPU_P0V75_TEMP_C"   
-    wrapper i2c_master_read 2 0xE2 0x01 0x00 "SENSOR_NUM_CPU_P0V75_PVDD_CH_S_TEMP_C"   
-    wrapper i2c_master_read 2 0xE6 0x01 0x00 "SENSOR_NUM_CPU_P0V75_TRVDD_ZONEA_TEMP_C"   
-    wrapper i2c_master_read 2 0xEC 0x01 0x00 "SENSOR_NUM_CPU_P0V75_TRVDD_ZONEB_TEMP_C"  
-    wrapper i2c_master_read 2 0xEA 0x01 0x00 "SENSOR_NUM_CPU_P1V1_VDDC_HBM0_2_4_TEMP_C"  
+    wrapper i2c_master_read 2 0x4C 0x01 0x00 "AEGIS_P0V85_PVDD_TEMP_C"   
+    wrapper i2c_master_read 2 0xE0 0x01 0x00 "AEGIS_P0V75_PVDD_CH_N_TEMP_C"   
+    wrapper i2c_master_read 2 0xE2 0x01 0x00 "AEGIS_P0V75_PVDD_CH_S_TEMP_C"   
+    wrapper i2c_master_read 2 0xE6 0x01 0x00 "AEGIS_P0V75_TRVDD_ZONEA_TEMP_C"   
+    wrapper i2c_master_read 2 0xEC 0x01 0x00 "AEGIS_P0V75_TRVDD_ZONEB_TEMP_C"  
+    wrapper i2c_master_read 2 0xEA 0x01 0x00 "AEGIS_P1V1_VDDC_HBM0_HBM2_HBM4_TEMP_C"  
     # Bus 3
     log_message "============= [Bus 3] ==========="
-    wrapper i2c_master_read 3 0xE4 0x01 0x00 "SENSOR_NUM_CPU_P0V9_TRVDD_ZONEA_TEMP_C"   
-    wrapper i2c_master_read 3 0xE8 0x01 0x00 "SENSOR_NUM_CPU_P0V9_TRVDD_ZONEB_TEMP_C"  
-    wrapper i2c_master_read 3 0xEE 0x01 0x00 "SENSOR_NUM_CPU_P1V1_VDDC_HBM1_3_5_TEMP_C"   
-    wrapper i2c_master_read 3 0xF2 0x01 0x00 "SENSOR_NUM_CPU_P0V8_VDDA_PCIE_TEMP_C"    
+    wrapper i2c_master_read 3 0xE4 0x01 0x00 "AEGIS_P0V9_TRVDD_ZONEA_TEMP_C"   
+    wrapper i2c_master_read 3 0xE8 0x01 0x00 "AEGIS_P0V9_TRVDD_ZONEB_TEMP_C"  
+    wrapper i2c_master_read 3 0xEE 0x01 0x00 "AEGIS_P1V1_VDDC_HBM1_HBM3_HBM5_TEMP_C"   
+    wrapper i2c_master_read 3 0xF2 0x01 0x00 "AEGIS_VDDA_PCIE_TEMP_C"    
     if [[ $rev_id -ge 01 ]];then
       # Bus 5
       log_message "============= [Bus 5] ==========="
-      wrapper i2c_master_read 5 0x4C 0x01 0x00 "SENSOR_NUM_CPLD"
-      wrapper i2c_master_read 5 0xA0 0x01 0x00 "SENSOR_NUM_CPLD"   
+      wrapper i2c_master_read 5 0x4C 0x01 0x00 "AEGIS_CPLD"
+      wrapper i2c_master_read 5 0xA0 0x01 0x00 "AEGIS_CPLD"   
     fi
     if [[ $rev_id == 00 ]];then
       # Bus 7
       log_message "============= [Bus 7] ==========="
-      wrapper i2c_master_read 7 0x12 0x01 0x00 "SENSOR_NUM_321M_CLK_CEN"   
-      wrapper i2c_master_read 7 0xD0 0x01 0x00 "SENSOR_NUM_100M_CLK_CEN"    
-      wrapper i2c_master_read 7 0xCE 0x01 0x00 "SENSOR_NUM_100M_CLK_BUFFER"      
-      wrapper i2c_master_read 7 0xD8 0x01 0x00 "SENSOR_NUM_100M_CLK_BUFFER"      
+      wrapper i2c_master_read 7 0x12 0x01 0x00 "AEGIS_321M_CLK_CEN"   
+      wrapper i2c_master_read 7 0xD0 0x01 0x00 "AEGIS_100M_CLK_CEN"    
+      wrapper i2c_master_read 7 0xCE 0x01 0x00 "AEGIS_100M_CLK_BUFFER"      
+      wrapper i2c_master_read 7 0xD8 0x01 0x00 "AEGIS_100M_CLK_BUFFER"      
     fi
     if [[ $rev_id -ge 01 ]];then
       # Bus 12
       log_message "============= [Bus 12] ==========="
-      wrapper i2c_master_read 12 0xA0 0x01 0x00 "SENSOR_NUM_EEPROM" 
+      wrapper i2c_master_read 12 0xA0 0x01 0x00 "AEGIS_EEPROM" 
     fi
   fi
   
@@ -280,65 +280,65 @@ while [[ $current_loop -lt $total_loop_time ]];do
   if [[ $vr_verndor_type == 01 ]] || [[ $vr_verndor_type == 03 ]] || [[ $vr_verndor_type == 05 ]];then
     # Bus 1
     log_message "============= [Bus 1] ==========="
-    wrapper i2c_master_read 1 0x28 0x01 0x00 "SENSOR_NUM_UBC_1_TEMP_C"   
-    wrapper i2c_master_read 1 0x34 0x01 0x00 "SENSOR_NUM_UBC_2_TEMP_C"    
-    wrapper i2c_master_read 1 0x92 0x01 0x00 "SENSOR_NUM_TOP_INLET_TEMP_C"   
-    wrapper i2c_master_read 1 0x94 0x01 0x00 "SENSOR_NUM_TOP_OUTLET_TEMP_C"  
-    wrapper i2c_master_read 1 0x96 0x01 0x00 "SENSOR_NUM_BOT_INLET_TEMP_C"   
-    wrapper i2c_master_read 1 0x9E 0x01 0x00 "SENSOR_NUM_BOT_OUTLET_TEMP_C"   
+    wrapper i2c_master_read 1 0x28 0x01 0x00 "AEGIS_UBC_1_TEMP_C"   
+    wrapper i2c_master_read 1 0x34 0x01 0x00 "AEGIS_UBC_2_TEMP_C"    
+    wrapper i2c_master_read 1 0x92 0x01 0x00 "AEGIS_TOP_INLET_TEMP_C"   
+    wrapper i2c_master_read 1 0x94 0x01 0x00 "AEGIS_TOP_OUTLET_TEMP_C"  
+    wrapper i2c_master_read 1 0x96 0x01 0x00 "AEGIS_BOT_INLET_TEMP_C"   
+    wrapper i2c_master_read 1 0x9E 0x01 0x00 "AEGIS_BOT_OUTLET_TEMP_C"   
     if [[ $tmp_type == 1 ]];then
-      wrapper i2c_master_read 1 0x98 0x01 0x00 "SENSOR_NUM_ON_DIE_1_TEMP_C"      
-      wrapper i2c_master_read 1 0x9A 0x01 0x00 "SENSOR_NUM_ON_DIE_3_TEMP_C"     
+      wrapper i2c_master_read 1 0x98 0x01 0x00 "AEGIS_ON_DIE_1_TEMP_C"      
+      wrapper i2c_master_read 1 0x9A 0x01 0x00 "AEGIS_ON_DIE_3_TEMP_C"     
     else
-      wrapper i2c_master_read 1 0x38 0x01 0x00 "SENSOR_NUM_ON_DIE_1_TEMP_C"      
-      wrapper i2c_master_read 1 0xB8 0x01 0x00 "SENSOR_NUM_ON_DIE_3_TEMP_C"     
+      wrapper i2c_master_read 1 0xB8 0x01 0x00 "AEGIS_ON_DIE_1_TEMP_C"      
+      wrapper i2c_master_read 1 0x38 0x01 0x00 "AEGIS_ON_DIE_3_TEMP_C"     
     fi   
     if [[ $board_type == 00 ]];then
-      wrapper i2c_master_read 1 0xC0 0x01 0x00 "SENSOR_NUM_OSFP_P3V3_TEMP_C"     
+      wrapper i2c_master_read 1 0xC0 0x01 0x00 "AEGIS_P3V3_TEMP_C"     
     fi
     if [[ $rev_id -ge 01 ]];then
-      wrapper i2c_master_read 1 0x9E 0x01 0x00 "SENSOR_NUM_EUSB_REPEATER"
-      wrapper i2c_master_read 1 0x12 0x01 0x00 "SENSOR_NUM_321M_CLK_CEN"     
-      wrapper i2c_master_read 1 0xD0 0x01 0x00 "SENSOR_NUM_100M_CLK_CEN"     
-      wrapper i2c_master_read 1 0xCE 0x01 0x00 "SENSOR_NUM_100M_CLK_BUFFER"    
-      wrapper i2c_master_read 1 0xD8 0x01 0x00 "SENSOR_NUM_100M_CLK_BUFFER"      
+      wrapper i2c_master_read 1 0x9E 0x01 0x00 "AEGIS_EUSB_REPEATER"
+      wrapper i2c_master_read 1 0x12 0x01 0x00 "AEGIS_321M_CLK_CEN"     
+      wrapper i2c_master_read 1 0xD0 0x01 0x00 "AEGIS_100M_CLK_CEN"     
+      wrapper i2c_master_read 1 0xCE 0x01 0x00 "AEGIS_100M_CLK_BUFFER"    
+      wrapper i2c_master_read 1 0xD8 0x01 0x00 "AEGIS_100M_CLK_BUFFER"      
     fi
     # Bus 2
     log_message "============= [Bus 2] ==========="
-    wrapper i2c_master_read 2 0xE4 0x01 0x00 "SENSOR_NUM_CPU_P0V85_PVDD_TEMP_C"   
-    wrapper i2c_master_read 2 0xC0 0x01 0x00 "SENSOR_NUM_CPU_P0V75_TEMP_C"  
-    wrapper i2c_master_read 2 0xC2 0x01 0x00 "SENSOR_NUM_CPU_P0V75_PVDD_CH_S_TEMP_C"   
-    wrapper i2c_master_read 2 0xC4 0x01 0x00 "SENSOR_NUM_CPU_P0V75_TRVDD_ZONEA_TEMP_C"   
-    wrapper i2c_master_read 2 0xC6 0x01 0x00 "SENSOR_NUM_CPU_P0V75_TRVDD_ZONEB_TEMP_C"    
-    wrapper i2c_master_read 2 0xE8 0x01 0x00 "SENSOR_NUM_CPU_P1V1_VDDC_HBM0_2_4_TEMP_C"   
+    wrapper i2c_master_read 2 0xE4 0x01 0x00 "AEGIS_P0V85_PVDD_TEMP_C"   
+    wrapper i2c_master_read 2 0xC0 0x01 0x00 "AEGIS_P0V75_PVDD_CH_N_TEMP_C"  
+    wrapper i2c_master_read 2 0xC2 0x01 0x00 "AEGIS_P0V75_PVDD_CH_S_TEMP_C"   
+    wrapper i2c_master_read 2 0xC4 0x01 0x00 "AEGIS_P0V75_TRVDD_ZONEA_TEMP_C"   
+    wrapper i2c_master_read 2 0xC6 0x01 0x00 "AEGIS_P0V75_TRVDD_ZONEB_TEMP_C"    
+    wrapper i2c_master_read 2 0xE8 0x01 0x00 "AEGIS_P1V1_VDDC_HBM0_HBM2_HBM4_TEMP_C"   
     # Bus 3
     log_message "============= [Bus 3] ==========="
-    wrapper i2c_master_read 3 0xC0 0x01 0x00 "SENSOR_NUM_CPU_P0V9_TRVDD_ZONEA_TEMP_C"    
-    wrapper i2c_master_read 3 0xC2 0x01 0x00 "SENSOR_NUM_CPU_P0V9_TRVDD_ZONEB_TEMP_C"   
-    wrapper i2c_master_read 3 0xC4 0x01 0x00 "SENSOR_NUM_CPU_P1V1_VDDC_HBM1_3_5_TEMP_C"    
-    wrapper i2c_master_read 3 0xC6 0x01 0x00 "SENSOR_NUM_CPU_P0V8_VDDA_PCIE_TEMP_C"  
+    wrapper i2c_master_read 3 0xC0 0x01 0x00 "AEGIS_P0V9_TRVDD_ZONEA_TEMP_C"    
+    wrapper i2c_master_read 3 0xC2 0x01 0x00 "AEGIS_P0V9_TRVDD_ZONEB_TEMP_C"   
+    wrapper i2c_master_read 3 0xC4 0x01 0x00 "AEGIS_P1V1_VDDC_HBM1_HBM3_HBM5_TEMP_C"    
+    wrapper i2c_master_read 3 0xC6 0x01 0x00 "AEGIS_VDDA_PCIE_TEMP_C"  
     if [[ $rev_id -ge 01 ]];then
       # Bus 5
       log_message "============= [Bus 5] ==========="
-      wrapper i2c_master_read 5 0x4C 0x01 0x00 "SENSOR_NUM_CPLD"
-      wrapper i2c_master_read 5 0xA0 0x01 0x00 "SENSOR_NUM_CPLD"   
+      wrapper i2c_master_read 5 0x4C 0x01 0x00 "AEGIS_CPLD"
+      wrapper i2c_master_read 5 0xA0 0x01 0x00 "AEGIS_CPLD"   
     fi 
     if [[ $rev_id == 00 ]];then
       # Bus 7
       log_message "============= [Bus 7] ==========="
-      wrapper i2c_master_read 7 0x12 0x01 0x00 "SENSOR_NUM_321M_CLK_CEN"      
-      wrapper i2c_master_read 7 0xD0 0x01 0x00 "SENSOR_NUM_100M_CLK_CEN"
-      wrapper i2c_master_read 7 0xCE 0x01 0x00 "SENSOR_NUM_100M_CLK_BUFFER"      
-      wrapper i2c_master_read 7 0xD8 0x01 0x00 "SENSOR_NUM_100M_CLK_BUFFER"      
+      wrapper i2c_master_read 7 0x12 0x01 0x00 "AEGIS_321M_CLK_CEN"      
+      wrapper i2c_master_read 7 0xD0 0x01 0x00 "AEGIS_100M_CLK_CEN"
+      wrapper i2c_master_read 7 0xCE 0x01 0x00 "AEGIS_100M_CLK_BUFFER"      
+      wrapper i2c_master_read 7 0xD8 0x01 0x00 "AEGIS_100M_CLK_BUFFER"      
     fi
     if [[ $rev_id -ge 01 ]];then
       # Bus 12
       log_message "============= [Bus 12] ==========="
-      wrapper i2c_master_read 12 0xA0 0x01 0x00 "SENSOR_NUM_EEPROM" 
+      wrapper i2c_master_read 12 0xA0 0x01 0x00 "AEGIS_EEPROM" 
     fi
   fi
 
 done
 
-echo "test sensor set_sensor_polling all 1" > /dev/ttyUSB6
+echo "set_sensor_polling set all 1" > /dev/ttyUSB6
 log_message "Start BIC sensor polling...."

@@ -1,0 +1,31 @@
+###########################################################################
+        README For F0M AG I2C Stress
+###########################################################################
+This introduction document shows how to stress the F0M switch board Bridge IC i2c bus,
+the script runs in the openbmc shell
+
+Rlease date:
+    2025/01/10
+Version: 
+    v03
+
+Run i2c stress shell script to do i2c stress  
+Usage:
+    $PROGRAM_NAME [loop time]
+    
+Example:
+    chmod +x f0m_evb_aegis_i2c_stress_v03.sh
+    ./f0m_evb_aegis_i2c_stress_v03.sh 1
+
+Note:
+    1. The input argument [loop time] x 10 is the real stress time,
+       if the loop time input 1 then the each i2c device will access 10 times
+    2. Please use F0M evb/aegis board to test
+    3. The system needs power on.
+    4. Should set the script executable permission by running chmod command before running the test.
+
+Feature:
+    1. Modify the logic in get_vr_vendor_type() to show correct vr_vendor_type.
+    2. Updated the logic in get_tmp_type() to match with the MMC implementation.
+    3. Adjusted the "set_sensor_polling" command to be compatible with MMC version 2024.52.01.
+    4. Updated the sensor names to match the naming conventions in MMC version 2024.52.01.
