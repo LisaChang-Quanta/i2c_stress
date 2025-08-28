@@ -232,7 +232,11 @@ while [[ $current_loop -lt $total_loop_time ]];do
       wrapper i2c_master_read 1 0x38 0x01 0x00 "AEGIS_ON_DIE_3_TEMP_C"      
     fi
     if [[ $board_type == 00 ]];then
-      wrapper i2c_master_read 1 0xF6 0x01 0x00 "AEGIS_P3V3_TEMP_C"      
+      if [[ $fab_type -ge 03 ]];then
+        wrapper i2c_master_read 1 0xD6 0x01 0x00 "AEGIS_P3V3_TEMP_C"  
+      else
+        wrapper i2c_master_read 1 0xF6 0x01 0x00 "AEGIS_P3V3_TEMP_C"      
+      fi 
     fi
     if [[ $rev_id -ge 01 ]];then
       wrapper i2c_master_read 1 0x9E 0x01 0x00 "AEGIS_EUSB_REPEATER"
@@ -253,8 +257,12 @@ while [[ $current_loop -lt $total_loop_time ]];do
     log_message "============= [Bus 3] ==========="
     wrapper i2c_master_read 3 0xE4 0x01 0x00 "AEGIS_P0V9_TRVDD_ZONEA_TEMP_C"   
     wrapper i2c_master_read 3 0xE8 0x01 0x00 "AEGIS_P0V9_TRVDD_ZONEB_TEMP_C"  
-    wrapper i2c_master_read 3 0xEE 0x01 0x00 "AEGIS_P1V1_VDDC_HBM1_HBM3_HBM5_TEMP_C"   
-    wrapper i2c_master_read 3 0xF2 0x01 0x00 "AEGIS_VDDA_PCIE_TEMP_C"    
+    wrapper i2c_master_read 3 0xEE 0x01 0x00 "AEGIS_P1V1_VDDC_HBM1_HBM3_HBM5_TEMP_C"       
+    if [[ $fab_type -ge 03 ]];then
+      wrapper i2c_master_read 3 0xD2 0x01 0x00 "AEGIS_VDDA_PCIE_TEMP_C" 
+    else
+      wrapper i2c_master_read 3 0xF2 0x01 0x00 "AEGIS_VDDA_PCIE_TEMP_C"      
+    fi    
     if [[ $rev_id -ge 01 ]];then
       # Bus 5
       log_message "============= [Bus 5] ==========="
