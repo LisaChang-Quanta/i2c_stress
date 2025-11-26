@@ -10,7 +10,8 @@ tmp_type=-1
 i2c_retry_time=3
 stress_fail_flag=0 
 current_loop=0
-sensor_polling_restored=0 
+sensor_polling_restored=0
+ubc1_addr_check_type=-1
 
 # print message color define
 Info='\033[0;32m'
@@ -236,6 +237,41 @@ function get_tmp_type()
   return 1
 }
 
+function check_ubc1_addr()
+{
+ local retry=0
+  local ret=""
+  local completion_code=""
+
+  if [[ $vr_verndor_type == 0a ]] || [[ $vr_verndor_type == 0b ]]; then
+    while [ $retry -lt $i2c_retry_time ]; do
+      ret=$(pldmtool raw -m 0x0a -d 0x80 0x3f 0x01 0x15 0xa0 0x00 0x18 0x52 0x01 0x28 0x01 0x00 2>/dev/null | grep 'Rx:')
+      if [[ $? -eq 0 && -n "$ret" ]]; then
+        completion_code=$(echo "$ret" | awk '{print $12}')
+        if [[ $completion_code == 00 ]]; then
+          ubc1_addr_check_type=1  # UCB1 1st addr
+          log_message "This is UCB1 1st addr"
+          return 0
+        else
+          ubc1_addr_check_type=2  # UCB1 2nd addr
+          log_message "This is UCB1 2nd addr"
+          return 0
+        fi
+      fi
+      retry=$((retry+1))
+      sleep 1
+    done
+  else
+    ubc1_addr_check_type=1
+    log_message "This is UCB1 1st addr"
+    return 0
+  fi
+
+  ubc1_addr_check_type=2
+  log_message "${Warning}Failed to get UCB1 addr after $i2c_retry_time attempts, default to UCB1 2nd addr.${NoColor}"
+  return 1
+}
+
 function check_power_on()
 {
   local retry=0
@@ -341,6 +377,11 @@ main() {
     log_message "${Error}get_tmp_type failed.${NoColor}"
     return 1
   fi
+  check_ubc1_addr
+  if [ $? -ne 0 ]; then
+    log_message "${Error}check_ubc1_addr failed.${NoColor}"
+    return 1
+  fi
 
   while [[ $current_loop -lt $total_loop_time ]];do
     log_message "${Info}=============== LOOP: $(($current_loop + 1)) ===============${NoColor}"
@@ -350,7 +391,11 @@ main() {
     if [[ $vr_verndor_type == 00 ]] || [[ $vr_verndor_type == 02 ]] || [[ $vr_verndor_type == 04 ]] || [[ $vr_verndor_type == 06 ]] || [[ $vr_verndor_type == 08 ]] || [[ $vr_verndor_type == 0a ]];then
       # Bus 1
       log_message "============= [Bus 1] ==========="
-      wrapper i2c_master_read 1 0x28 0x01 0x00 "AEGIS_UBC_1_TEMP_C"    
+      if [[ $ubc1_addr_check_type == 1 ]];then
+        wrapper i2c_master_read 1 0x28 0x01 0x00 "AEGIS_UBC_1_TEMP_C"
+      else
+        wrapper i2c_master_read 1 0x3E 0x01 0x00 "AEGIS_UBC_1_TEMP_C"
+      fi     
       wrapper i2c_master_read 1 0x34 0x01 0x00 "AEGIS_UBC_2_TEMP_C"    
       wrapper i2c_master_read 1 0x92 0x01 0x00 "AEGIS_TOP_INLET_TEMP_C"    
       wrapper i2c_master_read 1 0x94 0x01 0x00 "AEGIS_TOP_OUTLET_TEMP_C"    
@@ -420,7 +465,11 @@ main() {
     if [[ $vr_verndor_type == 01 ]] || [[ $vr_verndor_type == 03 ]] || [[ $vr_verndor_type == 05 ]] || [[ $vr_verndor_type == 07 ]] || [[ $vr_verndor_type == 09 ]] || [[ $vr_verndor_type == 0b ]];then
       # Bus 1
       log_message "============= [Bus 1] ==========="
-      wrapper i2c_master_read 1 0x28 0x01 0x00 "AEGIS_UBC_1_TEMP_C"   
+      if [[ $ubc1_addr_check_type == 1 ]];then
+        wrapper i2c_master_read 1 0x28 0x01 0x00 "AEGIS_UBC_1_TEMP_C"
+      else
+        wrapper i2c_master_read 1 0x3E 0x01 0x00 "AEGIS_UBC_1_TEMP_C"
+      fi   
       wrapper i2c_master_read 1 0x34 0x01 0x00 "AEGIS_UBC_2_TEMP_C"    
       wrapper i2c_master_read 1 0x92 0x01 0x00 "AEGIS_TOP_INLET_TEMP_C"   
       wrapper i2c_master_read 1 0x94 0x01 0x00 "AEGIS_TOP_OUTLET_TEMP_C"  
